@@ -1,0 +1,25 @@
+* {
+  color: white;
+}
+
+.graph {
+    width: 100%;
+    height: 80px;
+    vertical-align: bottom;
+}
+
+.bar {
+    width: 8px;
+    margin: 1px;
+    display: inline-block;
+    vertical-align: bottom;
+    background-color: #2be;
+    max-height: 70px;
+    height: 70px;
+
+}
+
+.center {
+    padding: 20px 0;
+    text-align: center;
+}
