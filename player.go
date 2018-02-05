@@ -9,9 +9,17 @@ import (
 
 // Player is the component displaying Player.
 type Player struct {
-    Time int
-    Bar  [10]float64
+    Time   int
+    Bar    [10]float64
+    BarInt [10]int
 }
+
+type Tag struct {
+    Artist string
+    Title  string
+}
+
+var tag Tag
 
 func (p *Player) OnMount() {
     go func() {
@@ -33,11 +41,17 @@ func (p *Player) OnMount() {
             for j := 0; j < len(p.Bar); j++ {
                 for i := 0; i < len(csamples)/2/len(p.Bar); i++ {
                     p.Bar[j] = 20 * (math.Log(1 + cmplx.Abs(csamples[i+j])))
+                    p.BarInt[j] = int(p.Bar[j])
                 }
             }
+
         }
 
     }()
+}
+
+func (p *Player) TogglePlay() {
+    play = !play
 }
 
 func (p *Player) OnDismount() {
@@ -55,11 +69,11 @@ func (p *Player) Render() string {
             <div style="height: 100px; background-color: rgba(0,0,0,0)" class="bar"/>
     </div>
 </div>
-<h1>Blade Runner Soundtrack</h1>
-<h2>2049</h2>
+<h1>` + tag.Artist + `</h1>
+<h2>` + tag.Title + `</h2>
 <div>
     <button class="button back" onclick="OK"/>
-    <button class="button play" onclick="Cancel"/>
+    <button class="button play" onclick="TogglePlay"/>
     <button class="button next" onclick="RandomizePassword"/>                
 </div>
 `

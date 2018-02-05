@@ -3,6 +3,7 @@ package main
 import (
     "github.com/faiface/beep"
     "github.com/faiface/beep/mp3"
+    id3 "github.com/mikkyang/id3-go"
     "github.com/murlokswarm/app"
     _ "github.com/murlokswarm/mac"
     "log"
@@ -39,16 +40,25 @@ func main() {
                 continue
             }
 
+            log.Println(file)
+
             s, format, err := mp3.Decode(f)
 
             if err != nil {
                 continue
             }
 
+            mp3File, err := id3.Open(file)
+            defer mp3File.Close()
+
+            tag.Artist = mp3File.Artist()
+            tag.Title = mp3File.Title()
+
             Init(format.SampleRate, format.SampleRate.N(time.Second/10))
             Play(beep.Seq(s, beep.Callback(func() {
                 close(done)
             })))
+            <-done
         }
     }()
 
@@ -61,7 +71,8 @@ func newMainWindow() app.Windower {
         TitlebarHidden: true,
         Width:          500,
         Height:         768,
-        Vibrancy:       app.VibeDark,
+        //Vibrancy:       app.VibeDark,
+        BackgroundColor: "#ffffff",
         OnClose: func() bool {
             win = nil
             return true

@@ -21,6 +21,7 @@ var (
     underrun func()
     done     chan struct{}
     fftc     fft.FFT
+    play     bool
 )
 
 const (
@@ -39,6 +40,7 @@ func Init(sampleRate beep.SampleRate, bufferSize int) error {
     }
 
     mixer = beep.Mixer{}
+    play = true
 
     numBytes := bufferSize * 4
     samples = make([][2]float64, bufferSize)
@@ -97,7 +99,9 @@ func Play(s ...beep.Streamer) {
 
 func update() {
     mu.Lock()
+
     mixer.Stream(samples)
+
     mu.Unlock()
 
     for i := range samples {
