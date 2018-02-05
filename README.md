@@ -13,3 +13,8 @@ Run
 ```
 
 to queue files `1.mp3`, `2.mp3` and `3.mp3`.
+
+## Screenshots
+
+![Shaded](doc/shaded.png)
+![Brilliance](doc/brilliance.png)
