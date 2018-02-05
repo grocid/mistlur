@@ -32,32 +32,41 @@ func main() {
     }
 
     go func() {
+        Init()
+
         for _, file := range os.Args[1:] {
-
+            // Read music file.
             f, err := os.Open(file)
-
+            // Skip if error...
             if err != nil {
                 continue
             }
 
             log.Println(file)
 
+            // Decode the data.
             s, format, err := mp3.Decode(f)
 
             if err != nil {
                 continue
             }
 
+            // Make a channel to communicate when done.
+            done = make(chan struct{})
+
+            // Read tags.
             mp3File, err := id3.Open(file)
             defer mp3File.Close()
-
             tag.Artist = mp3File.Artist()
             tag.Title = mp3File.Title()
 
-            Init(format.SampleRate, format.SampleRate.N(time.Second/10))
+            // Start playing...
+            InitPlayer(format.SampleRate, format.SampleRate.N(time.Second/10))
             Play(beep.Seq(s, beep.Callback(func() {
                 close(done)
             })))
+
+            // Wait for done signal.
             <-done
         }
     }()

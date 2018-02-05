@@ -21,18 +21,20 @@ var (
     underrun func()
     done     chan struct{}
     fftc     fft.FFT
-    play     bool
 )
 
 const (
     FFTSamples = 1024
 )
 
-func Init(sampleRate beep.SampleRate, bufferSize int) error {
+func Init() {
+    fftc, _ = fft.New(FFTSamples)
+    csamples = make([]complex128, FFTSamples)
+}
+
+func InitPlayer(sampleRate beep.SampleRate, bufferSize int) error {
     mu.Lock()
     defer mu.Unlock()
-
-    fftc, _ = fft.New(FFTSamples)
 
     if player != nil {
         done <- struct{}{}
@@ -40,11 +42,9 @@ func Init(sampleRate beep.SampleRate, bufferSize int) error {
     }
 
     mixer = beep.Mixer{}
-    play = true
-
     numBytes := bufferSize * 4
     samples = make([][2]float64, bufferSize)
-    csamples = make([]complex128, FFTSamples)
+
     buf = make([]byte, numBytes)
 
     var err error
@@ -57,8 +57,6 @@ func Init(sampleRate beep.SampleRate, bufferSize int) error {
     if underrun != nil {
         player.SetUnderrunCallback(underrun)
     }
-
-    done = make(chan struct{})
 
     go func() {
         for {
@@ -101,9 +99,7 @@ func update() {
     mu.Lock()
 
     mixer.Stream(samples)
-
     mu.Unlock()
-
     for i := range samples {
         for c := range samples[i] {
             val := samples[i][c]
@@ -122,4 +118,5 @@ func update() {
     }
 
     player.Write(buf)
+
 }
