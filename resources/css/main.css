@@ -8,7 +8,7 @@
 }
 
 body {
-    background-image: url(../images/blur.png)
+    background-image: url(../images/blurdark.png)
 }
 
 h1 {
@@ -107,6 +107,10 @@ h1 {
 
 .button.play {
     background-image:url(../buttons/play.png);
+}
+
+.button.pause {
+    background-image:url(../buttons/pause.png);
 }
 
 .button.next {

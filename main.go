@@ -68,7 +68,12 @@ func main() {
 
             // Wait for done signal.
             <-done
+
         }
+
+        done <- struct{}{}
+        tag.Artist = "Nothing playing"
+        tag.Title = "Enjoy silence"
     }()
 
     app.Run()

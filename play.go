@@ -5,7 +5,7 @@ package main
 import (
     "github.com/faiface/beep"
     "github.com/hajimehoshi/oto"
-    "github.com/ktye/fft"
+
     "github.com/pkg/errors"
     //"os"
     "sync"
@@ -20,17 +20,7 @@ var (
     player   *oto.Player
     underrun func()
     done     chan struct{}
-    fftc     fft.FFT
 )
-
-const (
-    FFTSamples = 1024
-)
-
-func Init() {
-    fftc, _ = fft.New(FFTSamples)
-    csamples = make([]complex128, FFTSamples)
-}
 
 func InitPlayer(sampleRate beep.SampleRate, bufferSize int) error {
     mu.Lock()
