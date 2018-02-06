@@ -3,16 +3,15 @@ package main
 import (
     "github.com/ktye/fft"
     "github.com/murlokswarm/app"
-    "math"
-    "math/cmplx"
+    //"math"
     "time"
-    "mistlur/cl"
+    "mistlur/clfft"
     "log"
 )
 
 // Player is the component displaying Player.
 type Player struct {
-    Bar     [10]float64
+    Bar     []float32
     PlayBtn string
 }
 
@@ -23,10 +22,10 @@ type Tag struct {
 
 const (
     // Let us make it less computationally invasive
-    FFTSamples = 4096
+    FFTSamples = 1024
     // This is fast enough for the eye, no? Maybe a little choppy
     // but that is a trade-off.
-    RefreshEveryMillisec = 40
+    RefreshEveryMillisec = 400
 )
 
 var (
@@ -35,50 +34,38 @@ var (
     guidone chan struct{}
     play    bool
     fftc    fft.FFT
+    fftcl   *clfft.CLFourier
+
 )
 
 func Init() {
     fftc, _ = fft.New(FFTSamples)
-    csamples = make([]complex128, FFTSamples)
+    fftcl = clfft.New(10, 10)
+    log.Println(fftcl.Init())
+    
 }
 
 func (p *Player) OnMount() {
-
-platforms, err := cl.GetPlatforms()
-    if err != nil {
-        log.Fatalf("Failed to get platforms: %+v", err)
-    }
-    for i, p := range platforms {
-        log.Println("Platform %d:", i)
-        log.Println("  Name: %s", p.Name())
-        log.Println("  Vendor: %s", p.Vendor())
-        log.Println("  Profile: %s", p.Profile())
-        log.Println("  Version: %s", p.Version())
-        log.Println("  Extensions: %s", p.Extensions())
-    }
-
-
     play = true
     p.PlayBtn = "pause"
     // Make a channel to control UI.
     guidone = make(chan struct{})
+    csamples = make([]float32, FFTSamples)
 
     go func() {
         c := time.Tick(RefreshEveryMillisec * time.Millisecond)
         for _ = range c {
              // Convert channel slice to complex128 (mono).
             for i := 0; i < FFTSamples; i++ {
-                csamples[i] = complex((samples[i][0] + samples[i][1]), 0)
+                csamples[i] = float32(samples[i][0] + samples[i][1])
             }
             // An FFT walks into...
-            fftc.Transform(csamples)
+            var err error
+                        p.Bar,err = fftcl.Transform(csamples)
+                        log.Println("FFT", p.Bar, err)
+
             // ...a bar...
-            for j := 0; j < len(p.Bar); j++ {
-                // Consider only half of the frequencies.
-                for i := 0; i < len(csamples)/2/len(p.Bar); i++ {
-                    p.Bar[j] = 20 * (math.Log(1 + cmplx.Abs(csamples[i+j])))
-                }
-            }
+
             // ...and the whole scene unfolds with tedious inevitability.
             // #complexjoke
         }

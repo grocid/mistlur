@@ -15,7 +15,7 @@ var (
     mu       sync.Mutex
     mixer    beep.Mixer
     samples  [][2]float64
-    csamples []complex128
+    csamples []float32
     buf      []byte
     player   *oto.Player
     underrun func()
