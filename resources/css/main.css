@@ -1,5 +1,5 @@
 * {
-    color: white;
+    color: #222;
     font-family: -apple-system;
     font-weight: 300;
     -webkit-user-select: none;
@@ -8,11 +8,8 @@
 }
 
 body {
-    background-image: url(../images/blur.png)
-}
-
-h1 {
-    color: white;
+    /*background-image: url(../images/blur.png)*/
+    background: white
 }
 
 @keyframes fadein {
@@ -102,17 +99,17 @@ h1 {
 }
 
 .button.back {
-    background-image:url(../buttons/back.png);
+    background-image:url(../buttons/back_dark.png);
 }
 
 .button.play {
-    background-image:url(../buttons/play.png);
+    background-image:url(../buttons/play_dark.png);
 }
 
 .button.pause {
-    background-image:url(../buttons/pause.png);
+    background-image:url(../buttons/pause_dark.png);
 }
 
 .button.next {
-    background-image:url(../buttons/next.png);
+    background-image:url(../buttons/next_dark.png);
 }

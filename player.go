@@ -3,20 +3,16 @@ package main
 import (
     "github.com/ktye/fft"
     "github.com/murlokswarm/app"
+    "log"
     "math"
     "math/cmplx"
     "time"
 )
 
-// Player is the component displaying Player.
+// Player is the component disPlaying Player.
 type Player struct {
     Bar     [10]float64
     PlayBtn string
-}
-
-type Tag struct {
-    Artist string
-    Title  string
 }
 
 const (
@@ -24,15 +20,18 @@ const (
     FFTSamples = 1024
     // This is fast enough for the eye, no? Maybe a little choppy
     // but that is a trade-off.
-    RefreshEveryMillisec = 40
+    RefreshEveryMillisec = 30
+
+    BtnPlay  = "play"
+    BtnPause = "pause"
 )
 
 var (
     tag Tag
     // Signal to control UI computations.
-    guidone chan struct{}
-    play    bool
-    fftc    fft.FFT
+    guiIsDone chan struct{}
+    fftc      fft.FFT
+    isPlaying bool
 )
 
 func Init() {
@@ -42,18 +41,37 @@ func Init() {
 
 func (p *Player) OnMount() {
 
-    play = true
-    p.PlayBtn = "pause"
+    isPlaying = true
+    p.PlayBtn = BtnPause
 
+    // Make a channel to control UI.
+    guiIsDone = make(chan struct{})
+
+    // Rendering loop.
     go func() {
-        // Make a channel to control UI.
-        guidone = make(chan struct{})
-
         c := time.Tick(RefreshEveryMillisec * time.Millisecond)
         for _ = range c {
             select {
             default:
-                // Convert channel slice to complex128 (mono).
+                // Render pl0x.
+                app.Render(p)
+            case <-guiIsDone:
+                return
+            }
+        }
+    }()
+
+    // FFT loop.
+    go func() {
+        c := time.Tick(RefreshEveryMillisec * time.Millisecond)
+        for _ = range c {
+            select {
+            default:
+                if !isPlaying {
+                    p.ClearBars()
+                    continue
+                }
+                // Convert channel slices to complex128 (mono).
                 for i := 0; i < FFTSamples; i++ {
                     csamples[i] = complex((samples[i][0] + samples[i][1]), 0)
                 }
@@ -62,58 +80,87 @@ func (p *Player) OnMount() {
                 // ...a bar...
                 for j := 0; j < len(p.Bar); j++ {
                     // Consider only half of the frequencies.
-                    for i := 0; i < len(csamples)/2/len(p.Bar); i++ {
+                    for i := 0; i < FFTSamples/len(p.Bar)/2; i++ {
                         p.Bar[j] = 20 * (math.Log(1 + cmplx.Abs(csamples[i+j])))
                     }
                 }
                 // ...and the whole scene unfolds with tedious inevitability.
                 // #complexjoke
-            case <-guidone:
+            case <-guiIsDone:
                 return
             }
-            // Render pl0x.
-            app.Render(p)
         }
     }()
+    //done <- struct{}{}
+}
+
+func (p *Player) BackBtn() {
+    // Simply tell the player that it is done with the current song...
+    mu.Lock()
+    DecrementPosition()
+    done <- struct{}{}
+
+    mu.Unlock()
+
 }
 
 func (p *Player) NextBtn() {
     // Simply tell the player that it is done with the current song...
+    mu.Lock()
     done <- struct{}{}
+    mu.Unlock()
+
 }
 
 func (p *Player) TogglePlayBtn() {
-    play = !play
+    isPlaying = !isPlaying
+    log.Println(isPlaying)
 
     // Tell UI to toggle the button.
-    if play {
-        p.PlayBtn = "pause"
+    if isPlaying {
+        continuePlayList <- struct{}{}
+        mu.Unlock()
     } else {
-        p.PlayBtn = "play"
+        mu.Lock()
+
+    }
+}
+
+func (p *Player) ClearBars() {
+    for j := 0; j < len(p.Bar); j++ {
+        p.Bar[j] = 0
     }
 }
 
 func (p *Player) OnDismount() {
     // Tell UI it is done here.
-    guidone <- struct{}{}
+    guiIsDone <- struct{}{}
+    done <- struct{}{}
 }
 
 func (p *Player) Render() string {
+
+    // Tell UI to toggle the button.
+    if isPlaying {
+        p.PlayBtn = BtnPause
+    } else {
+        p.PlayBtn = BtnPlay
+    }
     // UI component
     return `
 <div class="center">
     <div class="graph">
-            <div style="height: 100px; background-color: rgba(0,0,0,0)" class="bar"/>
+            <div style="height: 120px; background-color: rgba(0,0,0,0)" class="bar"/>
                 {{ range $key, $data := .Bar }}
                     <div style="height: {{$data}}px;" class="bar"/>
                 {{ end }}
-            <div style="height: 100px; background-color: rgba(0,0,0,0)" class="bar"/>
+            <div style="height: 120px; background-color: rgba(0,0,0,0)" class="bar"/>
     </div>
 </div>
 <h1>` + tag.Artist + `</h1>
 <h2>` + tag.Title + `</h2>
 <div>
-    <button class="button back" onclick="OK"/>
+    <button class="button back" onclick="BackBtn"/>
     <button class="button {{.PlayBtn}}" onclick="TogglePlayBtn"/>   
     <button class="button next" onclick="NextBtn"/>                
 </div>

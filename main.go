@@ -1,14 +1,11 @@
 package main
 
 import (
-    "github.com/faiface/beep"
-    "github.com/faiface/beep/mp3"
-    id3 "github.com/mikkyang/id3-go"
     "github.com/murlokswarm/app"
     _ "github.com/murlokswarm/mac"
     "log"
     "os"
-    "time"
+    "runtime"
 )
 
 var (
@@ -17,6 +14,17 @@ var (
 
 func main() {
     log.Println(os.Args)
+    runtime.GOMAXPROCS(1)
+    if len(os.Args) < 2 {
+        return
+    }
+
+    Init()
+    InitPlaylist(os.Args[1:])
+
+    go func() {
+        StartPlaylist()
+    }()
 
     app.OnLaunch = func() {
         win = newMainWindow()
@@ -30,51 +38,6 @@ func main() {
         win = newMainWindow()
         win.Mount(&Player{})
     }
-
-    go func() {
-        Init()
-
-        for _, file := range os.Args[1:] {
-            // Read music file.
-            f, err := os.Open(file)
-            // Skip if error...
-            if err != nil {
-                continue
-            }
-
-            log.Println(file)
-
-            // Decode the data.
-            s, format, err := mp3.Decode(f)
-
-            if err != nil {
-                continue
-            }
-
-            // Make a channel to communicate when done.
-            done = make(chan struct{})
-
-            // Read tags.
-            mp3File, err := id3.Open(file)
-            defer mp3File.Close()
-            tag.Artist = mp3File.Artist()
-            tag.Title = mp3File.Title()
-
-            // Start playing...
-            InitPlayer(format.SampleRate, format.SampleRate.N(time.Second/10))
-            Play(beep.Seq(s, beep.Callback(func() {
-                close(done)
-            })))
-
-            // Wait for done signal.
-            <-done
-
-        }
-
-        done <- struct{}{}
-        tag.Artist = "Nothing playing"
-        tag.Title = "Enjoy silence"
-    }()
 
     app.Run()
 }

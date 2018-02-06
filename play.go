@@ -5,9 +5,7 @@ package main
 import (
     "github.com/faiface/beep"
     "github.com/hajimehoshi/oto"
-
     "github.com/pkg/errors"
-    //"os"
     "sync"
 )
 
@@ -71,23 +69,22 @@ func UnderrunCallback(f func()) {
     mu.Unlock()
 }
 
-func Lock() {
-    mu.Lock()
-}
-
-func Unlock() {
-    mu.Unlock()
-}
-
 func Play(s ...beep.Streamer) {
     mu.Lock()
     mixer.Play(s...)
     mu.Unlock()
 }
 
+func Stop() {
+    mu.Lock()
+    defer mu.Unlock()
+
+    mixer = beep.Mixer{}
+    isPlaying = false
+}
+
 func update() {
     mu.Lock()
-
     mixer.Stream(samples)
     mu.Unlock()
     for i := range samples {
@@ -106,7 +103,6 @@ func update() {
             buf[i*4+c*2+1] = high
         }
     }
-
     player.Write(buf)
 
 }
