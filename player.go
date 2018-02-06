@@ -6,6 +6,8 @@ import (
     "math"
     "math/cmplx"
     "time"
+    "mistlur/cl"
+    "log"
 )
 
 // Player is the component displaying Player.
@@ -21,7 +23,7 @@ type Tag struct {
 
 const (
     // Let us make it less computationally invasive
-    FFTSamples = 1024
+    FFTSamples = 4096
     // This is fast enough for the eye, no? Maybe a little choppy
     // but that is a trade-off.
     RefreshEveryMillisec = 40
@@ -42,39 +44,65 @@ func Init() {
 
 func (p *Player) OnMount() {
 
+platforms, err := cl.GetPlatforms()
+    if err != nil {
+        log.Fatalf("Failed to get platforms: %+v", err)
+    }
+    for i, p := range platforms {
+        log.Println("Platform %d:", i)
+        log.Println("  Name: %s", p.Name())
+        log.Println("  Vendor: %s", p.Vendor())
+        log.Println("  Profile: %s", p.Profile())
+        log.Println("  Version: %s", p.Version())
+        log.Println("  Extensions: %s", p.Extensions())
+    }
+
+
     play = true
     p.PlayBtn = "pause"
+    // Make a channel to control UI.
+    guidone = make(chan struct{})
 
     go func() {
-        // Make a channel to control UI.
-        guidone = make(chan struct{})
+        c := time.Tick(RefreshEveryMillisec * time.Millisecond)
+        for _ = range c {
+             // Convert channel slice to complex128 (mono).
+            for i := 0; i < FFTSamples; i++ {
+                csamples[i] = complex((samples[i][0] + samples[i][1]), 0)
+            }
+            // An FFT walks into...
+            fftc.Transform(csamples)
+            // ...a bar...
+            for j := 0; j < len(p.Bar); j++ {
+                // Consider only half of the frequencies.
+                for i := 0; i < len(csamples)/2/len(p.Bar); i++ {
+                    p.Bar[j] = 20 * (math.Log(1 + cmplx.Abs(csamples[i+j])))
+                }
+            }
+            // ...and the whole scene unfolds with tedious inevitability.
+            // #complexjoke
+        }
+    }()
 
+    go func() {
         c := time.Tick(RefreshEveryMillisec * time.Millisecond)
         for _ = range c {
             select {
             default:
-                // Convert channel slice to complex128 (mono).
-                for i := 0; i < FFTSamples; i++ {
-                    csamples[i] = complex((samples[i][0] + samples[i][1]), 0)
-                }
-                // An FFT walks into...
-                fftc.Transform(csamples)
-                // ...a bar...
-                for j := 0; j < len(p.Bar); j++ {
-                    // Consider only half of the frequencies.
-                    for i := 0; i < len(csamples)/2/len(p.Bar); i++ {
-                        p.Bar[j] = 20 * (math.Log(1 + cmplx.Abs(csamples[i+j])))
-                    }
-                }
-                // ...and the whole scene unfolds with tedious inevitability.
-                // #complexjoke
+                // Render pl0x.
+                app.Render(p)
             case <-guidone:
                 return
             }
-            // Render pl0x.
-            app.Render(p)
+            
         }
     }()
+}
+
+func (p *Player) ClearBars() {
+    for i := 0; i < len(p.Bar); i++ {
+        p.Bar[i] = 0
+    }
 }
 
 func (p *Player) NextBtn() {

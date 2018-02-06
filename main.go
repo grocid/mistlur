@@ -9,6 +9,7 @@ import (
     "log"
     "os"
     "time"
+    "runtime"
 )
 
 var (
@@ -16,6 +17,8 @@ var (
 )
 
 func main() {
+
+    runtime.GOMAXPROCS(2)
     log.Println(os.Args)
 
     app.OnLaunch = func() {
@@ -33,6 +36,8 @@ func main() {
 
     go func() {
         Init()
+
+
 
         for _, file := range os.Args[1:] {
             // Read music file.
@@ -71,7 +76,6 @@ func main() {
 
         }
 
-        done <- struct{}{}
         tag.Artist = "Nothing playing"
         tag.Title = "Enjoy silence"
     }()
