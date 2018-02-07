@@ -18,3 +18,7 @@ to queue files `1.mp3`, `2.mp3` and `3.mp3`.
 
 ![Shaded](doc/shaded.png)
 ![Brilliance](doc/brilliance.png)
+
+### Transparent + minimal
+
+![Minimal](doc/minimal.png)
