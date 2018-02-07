@@ -4,12 +4,14 @@ import (
     "github.com/murlokswarm/app"
     _ "github.com/murlokswarm/mac"
     "log"
+    "mistlur/play"
     "os"
     "runtime"
 )
 
 var (
-    win app.Windower
+    win      app.Windower
+    playlist play.Playlist
 )
 
 func main() {
@@ -19,11 +21,14 @@ func main() {
         return
     }
 
+    // Initialize FFT.
     Init()
-    InitPlaylist(os.Args[1:])
+
+    playlist = play.New()
+    playlist.Init(os.Args[1:])
 
     go func() {
-        StartPlaylist()
+        playlist.Start()
     }()
 
     app.OnLaunch = func() {

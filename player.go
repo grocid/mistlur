@@ -3,9 +3,10 @@ package main
 import (
     "github.com/ktye/fft"
     "github.com/murlokswarm/app"
-    "log"
+    //"log"
     "math"
     "math/cmplx"
+    "mistlur/play"
     "time"
 )
 
@@ -13,6 +14,7 @@ import (
 type Player struct {
     Bar     [10]float64
     PlayBtn string
+    Tag     play.Tag
 }
 
 const (
@@ -20,18 +22,16 @@ const (
     FFTSamples = 1024
     // This is fast enough for the eye, no? Maybe a little choppy
     // but that is a trade-off.
-    RefreshEveryMillisec = 30
+    RefreshEveryMillisec = 10
 
     BtnPlay  = "play"
     BtnPause = "pause"
 )
 
 var (
-    tag Tag
-    // Signal to control UI computations.
     guiIsDone chan struct{}
     fftc      fft.FFT
-    isPlaying bool
+    csamples  []complex128
 )
 
 func Init() {
@@ -40,8 +40,6 @@ func Init() {
 }
 
 func (p *Player) OnMount() {
-
-    isPlaying = true
     p.PlayBtn = BtnPause
 
     // Make a channel to control UI.
@@ -67,10 +65,13 @@ func (p *Player) OnMount() {
         for _ = range c {
             select {
             default:
-                if !isPlaying {
+                if !playlist.IsPlaying() {
                     p.ClearBars()
                     continue
                 }
+
+                s := playlist.GetSamples()
+                samples := *s
                 // Convert channel slices to complex128 (mono).
                 for i := 0; i < FFTSamples; i++ {
                     csamples[i] = complex((samples[i][0] + samples[i][1]), 0)
@@ -95,35 +96,15 @@ func (p *Player) OnMount() {
 }
 
 func (p *Player) BackBtn() {
-    // Simply tell the player that it is done with the current song...
-    mu.Lock()
-    DecrementPosition()
-    done <- struct{}{}
-
-    mu.Unlock()
-
+    playlist.Back()
 }
 
 func (p *Player) NextBtn() {
-    // Simply tell the player that it is done with the current song...
-    mu.Lock()
-    done <- struct{}{}
-    mu.Unlock()
-
+    playlist.Next()
 }
 
 func (p *Player) TogglePlayBtn() {
-    isPlaying = !isPlaying
-    log.Println(isPlaying)
-
-    // Tell UI to toggle the button.
-    if isPlaying {
-        continuePlayList <- struct{}{}
-        mu.Unlock()
-    } else {
-        mu.Lock()
-
-    }
+    playlist.TogglePause()
 }
 
 func (p *Player) ClearBars() {
@@ -135,17 +116,20 @@ func (p *Player) ClearBars() {
 func (p *Player) OnDismount() {
     // Tell UI it is done here.
     guiIsDone <- struct{}{}
-    done <- struct{}{}
+    playlist.Done()
 }
 
 func (p *Player) Render() string {
 
     // Tell UI to toggle the button.
-    if isPlaying {
+    if playlist.IsPlaying() {
         p.PlayBtn = BtnPause
     } else {
         p.PlayBtn = BtnPlay
     }
+
+    p.Tag = playlist.GetTags()
+
     // UI component
     return `
 <div class="center">
@@ -157,8 +141,8 @@ func (p *Player) Render() string {
             <div style="height: 120px; background-color: rgba(0,0,0,0)" class="bar"/>
     </div>
 </div>
-<h1>` + tag.Artist + `</h1>
-<h2>` + tag.Title + `</h2>
+<h1>{{ .Tag.Artist }} </h1>
+<h2>{{ .Tag.Title }} </h2>
 <div>
     <button class="button back" onclick="BackBtn"/>
     <button class="button {{.PlayBtn}}" onclick="TogglePlayBtn"/>   

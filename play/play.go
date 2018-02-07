@@ -1,6 +1,6 @@
 // Based on the internals of https://github.com/faiface/beep
 
-package main
+package play
 
 import (
     "github.com/faiface/beep"
@@ -10,14 +10,14 @@ import (
 )
 
 var (
-    mu       sync.Mutex
-    mixer    beep.Mixer
-    samples  [][2]float64
-    csamples []complex128
-    buf      []byte
-    player   *oto.Player
-    underrun func()
-    done     chan struct{}
+    mu        sync.Mutex
+    mixer     beep.Mixer
+    samples   [][2]float64
+    buf       []byte
+    player    *oto.Player
+    underrun  func()
+    done      chan struct{}
+    isPlaying bool
 )
 
 func InitPlayer(sampleRate beep.SampleRate, bufferSize int) error {
@@ -72,15 +72,29 @@ func UnderrunCallback(f func()) {
 func Play(s ...beep.Streamer) {
     mu.Lock()
     mixer.Play(s...)
+    isPlaying = true
     mu.Unlock()
 }
 
 func Stop() {
     mu.Lock()
     defer mu.Unlock()
-
     mixer = beep.Mixer{}
     isPlaying = false
+}
+
+func togglePause() {
+    if isPlaying {
+        mu.Lock()
+    } else {
+        mu.Unlock()
+    }
+
+    isPlaying = !isPlaying
+}
+
+func IsPlaying() bool {
+    return isPlaying
 }
 
 func update() {
@@ -104,5 +118,4 @@ func update() {
         }
     }
     player.Write(buf)
-
 }
