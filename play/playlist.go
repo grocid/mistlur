@@ -48,6 +48,7 @@ func (p *Playlist) Start() {
             if currentlyPlaying >= len(filesToBePlayed) {
                 Stop()
                 mu.Lock()
+                isPlaying = false
                 currentlyPlaying = len(filesToBePlayed) - 1
 
                 continuePlayList = make(chan struct{})

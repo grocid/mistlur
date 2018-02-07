@@ -32,6 +32,12 @@ func main() {
     }()
 
     app.OnLaunch = func() {
+        appMenu := &MenuBar{}
+
+        if menuBar, ok := app.MenuBar(); ok {
+            menuBar.Mount(appMenu)
+        }
+
         win = newMainWindow()
         win.Mount(&Player{})
     }
@@ -51,10 +57,12 @@ func newMainWindow() app.Windower {
     return app.NewWindow(app.Window{
         Title:          "mistlur",
         TitlebarHidden: true,
-        Width:          500,
-        Height:         768,
-        //Vibrancy:       app.VibeDark,
-        BackgroundColor: "#ffffff",
+        Width:          400,
+        Height:         70,
+        Vibrancy:       app.VibeDark,
+        CloseHidden:    true,
+        MinimizeHidden: true,
+        FixedSize:      true,
         OnClose: func() bool {
             win = nil
             return true
